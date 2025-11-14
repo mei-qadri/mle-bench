@@ -1,0 +1,45 @@
+# Core dependencies for MLE-bench Multi-Agent System
+# Phase I: Core Infrastructure
+
+# Data manipulation
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Configuration
+pyyaml>=6.0
+
+# ML basics
+scikit-learn>=1.3.0
+
+# Gradient boosting
+xgboost>=2.0.0
+lightgbm>=4.0.0
+catboost>=1.2.0
+
+# HPO
+optuna>=3.0.0
+scipy>=1.10.0
+
+# Monitoring
+psutil>=5.9.0
+GPUtil>=1.4.0
+
+# Testing
+pytest>=7.0.0
+pytest-cov>=4.0.0
+
+# Optional: Deep Learning (uncomment if needed)
+# torch>=2.0.0
+# transformers>=4.30.0
+# timm>=0.9.0
+
+# Optional: Computer Vision (uncomment if needed)
+# opencv-python>=4.8.0
+# albumentations>=1.3.0
+
+# Optional: NLP (uncomment if needed)
+# sentencepiece>=0.1.99
+# sentence-transformers>=2.2.0
+
+# Optional: Audio (uncomment if needed)
+# librosa>=0.10.0
