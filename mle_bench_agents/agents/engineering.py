@@ -89,13 +89,31 @@ class EngineeringAgent(Agent):
             feature_analysis = analysis_result.get("feature_analysis", {})
             target_col = feature_analysis.get("target_column")
 
+            # Validate and find target column
             if not target_col or target_col not in train_df.columns:
-                # Try to identify target
+                self.log_info(f"Target column '{target_col}' not found, attempting to identify...")
                 target_col = self._identify_target(train_df)
 
+            # Double check target column exists
+            if target_col not in train_df.columns:
+                # Try case-insensitive match
+                col_lower_map = {col.lower(): col for col in train_df.columns}
+                if target_col.lower() in col_lower_map:
+                    target_col = col_lower_map[target_col.lower()]
+                    self.log_info(f"Found target column with case mismatch: {target_col}")
+                else:
+                    # Last resort: use the last column
+                    target_col = train_df.columns[-1]
+                    self.log_warning(f"Could not find target column, using last column: {target_col}")
+
             # Separate features and target
-            X_train = train_df.drop(columns=[target_col])
-            y_train = train_df[target_col]
+            try:
+                X_train = train_df.drop(columns=[target_col])
+                y_train = train_df[target_col]
+            except KeyError as e:
+                self.log_error(f"Failed to separate target column '{target_col}': {e}")
+                self.log_info(f"Available columns: {train_df.columns.tolist()}")
+                raise
 
             if test_df is not None:
                 # Align test columns with training columns
@@ -164,11 +182,33 @@ class EngineeringAgent(Agent):
             return {"status": "error", "error": str(e)}
 
     def _identify_target(self, df: pd.DataFrame) -> str:
-        """Identify target column."""
-        target_names = ['target', 'label', 'y', 'Transported', 'Survived']
+        """
+        Identify target column using various heuristics.
+
+        Tries multiple strategies:
+        1. Common exact names
+        2. Columns containing target-like keywords
+        3. Falls back to last column
+        """
+        # Try exact matches first
+        target_names = ['target', 'label', 'y', 'Transported', 'Survived', 'Target', 'Label']
         for name in target_names:
             if name in df.columns:
+                self.log_info(f"Found target column by exact match: {name}")
                 return name
+
+        # Try partial matches (case-insensitive)
+        target_keywords = ['target', 'label', 'prediction', 'score', 'class', 'outcome',
+                          'energy', 'price', 'value', 'rating', 'survival']
+        for col in df.columns:
+            col_lower = col.lower()
+            for keyword in target_keywords:
+                if keyword in col_lower:
+                    self.log_info(f"Found target column by keyword '{keyword}': {col}")
+                    return col
+
+        # Last resort: use last column (common convention in ML datasets)
+        self.log_info(f"Using last column as target (default): {df.columns[-1]}")
         return df.columns[-1]
 
     def _preprocess_features(
