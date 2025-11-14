@@ -1,0 +1,249 @@
+"""
+Engineering Agent (A4) - Feature Engineering and Preprocessing
+
+Handles data preprocessing, feature engineering, and CV fold creation.
+"""
+
+import pandas as pd
+import numpy as np
+from pathlib import Path
+from typing import Any, Dict, Optional, Tuple
+from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.model_selection import StratifiedKFold, KFold
+from sklearn.impute import SimpleImputer
+
+from mle_bench_agents.core.agent import Agent
+from mle_bench_agents.core.message import Message
+from mle_bench_agents.plugs.data_loading import DataLoadingPlug
+from mle_bench_agents.plugs.preprocessing import PreprocessingPlug
+
+
+class EngineeringAgent(Agent):
+    """
+    Engineering Agent responsible for:
+    - Data preprocessing
+    - Feature engineering
+    - Feature selection
+    - CV fold creation
+    """
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, agent_type="engineering", **kwargs)
+
+        self.data_loader = DataLoadingPlug()
+        self.preprocessing_plug = PreprocessingPlug()
+
+    def process_message(self, message: Message) -> Optional[Message]:
+        """Process incoming messages."""
+        payload = message.payload
+        action = payload.get("action")
+
+        if action == "engineer_features":
+            result = self.engineer_features(payload)
+            return message.create_response(
+                sender_id=self.agent_id,
+                payload=result
+            )
+
+        return None
+
+    def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Execute feature engineering."""
+        return self.engineer_features(context)
+
+    def engineer_features(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Preprocess data and engineer features.
+
+        Args:
+            context: Contains analysis_result and data paths
+
+        Returns:
+            Engineered features and CV folds
+        """
+        self.log_info("Starting feature engineering")
+
+        try:
+            # Get analysis results
+            analysis_result = context.get("analysis_result", {})
+            data_path = Path(context.get("data_path", "/home/data/"))
+
+            # Load data
+            train_file = data_path / "train.csv"
+            if not train_file.exists():
+                train_file = data_path / "train.parquet"
+
+            train_df = self.data_loader.execute(train_file)
+
+            # Load test data
+            test_file = data_path / "test.csv"
+            if not test_file.exists():
+                test_file = data_path / "test.parquet"
+
+            if test_file.exists():
+                test_df = self.data_loader.execute(test_file)
+            else:
+                test_df = None
+
+            # Identify target column
+            feature_analysis = analysis_result.get("feature_analysis", {})
+            target_col = feature_analysis.get("target_column")
+
+            if not target_col or target_col not in train_df.columns:
+                # Try to identify target
+                target_col = self._identify_target(train_df)
+
+            # Separate features and target
+            X_train = train_df.drop(columns=[target_col])
+            y_train = train_df[target_col]
+
+            if test_df is not None:
+                X_test = test_df
+            else:
+                X_test = X_train.head(0)  # Empty dataframe with same columns
+
+            self.log_info(f"Train shape: {X_train.shape}, Test shape: {X_test.shape}")
+
+            # Preprocess features
+            X_train_processed, X_test_processed, preprocessing_info = self._preprocess_features(
+                X_train, X_test, feature_analysis
+            )
+
+            # Encode target if needed
+            y_train_encoded, target_encoder = self._encode_target(y_train, analysis_result)
+
+            # Create CV folds
+            cv_folds = self._create_cv_folds(X_train_processed, y_train_encoded, analysis_result)
+
+            # Feature engineering
+            engineered_features = self._engineer_features(X_train_processed, X_test_processed)
+
+            result = {
+                "status": "success",
+                "preprocessing_pipeline": preprocessing_info,
+                "cv_folds": cv_folds,
+                "feature_summary": {
+                    "original_features": len(X_train.columns),
+                    "processed_features": X_train_processed.shape[1],
+                    "engineered_features": 0,  # Placeholder
+                    "total_features": X_train_processed.shape[1]
+                },
+                "data_ready": {
+                    "X_train": X_train_processed,
+                    "y_train": y_train_encoded,
+                    "X_test": X_test_processed,
+                    "target_encoder": target_encoder
+                },
+                "execution_time": 0.0
+            }
+
+            self.log_info(f"Feature engineering complete: {X_train_processed.shape[1]} features")
+            return result
+
+        except Exception as e:
+            self.log_error(f"Feature engineering failed: {e}")
+            return {"status": "error", "error": str(e)}
+
+    def _identify_target(self, df: pd.DataFrame) -> str:
+        """Identify target column."""
+        target_names = ['target', 'label', 'y', 'Transported', 'Survived']
+        for name in target_names:
+            if name in df.columns:
+                return name
+        return df.columns[-1]
+
+    def _preprocess_features(
+        self,
+        X_train: pd.DataFrame,
+        X_test: pd.DataFrame,
+        feature_analysis: Dict
+    ) -> Tuple[np.ndarray, np.ndarray, Dict]:
+        """Preprocess features."""
+        numerical_features = feature_analysis.get("numerical_features", [])
+        categorical_features = feature_analysis.get("categorical_features", [])
+
+        # Handle missing values
+        if X_train.isnull().any().any():
+            # Numerical: impute with median
+            for col in numerical_features:
+                if col in X_train.columns:
+                    median_val = X_train[col].median()
+                    X_train[col].fillna(median_val, inplace=True)
+                    if col in X_test.columns:
+                        X_test[col].fillna(median_val, inplace=True)
+
+            # Categorical: impute with mode
+            for col in categorical_features:
+                if col in X_train.columns:
+                    mode_val = X_train[col].mode()[0] if len(X_train[col].mode()) > 0 else "unknown"
+                    X_train[col].fillna(mode_val, inplace=True)
+                    if col in X_test.columns:
+                        X_test[col].fillna(mode_val, inplace=True)
+
+        # Encode categorical features
+        label_encoders = {}
+        for col in categorical_features:
+            if col in X_train.columns:
+                le = LabelEncoder()
+                X_train[col] = le.fit_transform(X_train[col].astype(str))
+                if col in X_test.columns:
+                    # Handle unseen categories
+                    X_test[col] = X_test[col].astype(str).map(
+                        lambda x: le.transform([x])[0] if x in le.classes_ else -1
+                    )
+                label_encoders[col] = le
+
+        # Convert to numpy arrays
+        X_train_array = X_train.values.astype(float)
+        X_test_array = X_test.values.astype(float) if len(X_test) > 0 else np.array([])
+
+        preprocessing_info = {
+            "label_encoders": label_encoders,
+            "feature_names": list(X_train.columns)
+        }
+
+        return X_train_array, X_test_array, preprocessing_info
+
+    def _encode_target(self, y: pd.Series, analysis_result: Dict) -> Tuple[np.ndarray, Optional[LabelEncoder]]:
+        """Encode target variable."""
+        target_analysis = analysis_result.get("target_analysis", {})
+
+        if target_analysis.get("type") == "classification":
+            le = LabelEncoder()
+            y_encoded = le.fit_transform(y)
+            return y_encoded, le
+        else:
+            return y.values, None
+
+    def _create_cv_folds(
+        self,
+        X: np.ndarray,
+        y: np.ndarray,
+        analysis_result: Dict
+    ) -> list:
+        """Create cross-validation folds."""
+        target_analysis = analysis_result.get("target_analysis", {})
+        n_splits = 5
+
+        if target_analysis.get("type") == "classification":
+            cv = StratifiedKFold(n_splits=n_splits, shuffle=True, random_state=42)
+        else:
+            cv = KFold(n_splits=n_splits, shuffle=True, random_state=42)
+
+        folds = list(cv.split(X, y))
+        self.log_info(f"Created {n_splits} CV folds")
+
+        return folds
+
+    def _engineer_features(
+        self,
+        X_train: np.ndarray,
+        X_test: np.ndarray
+    ) -> Dict[str, Any]:
+        """Engineer additional features."""
+        # Placeholder for feature engineering
+        # Could add polynomial features, interactions, etc.
+        return {
+            "engineered_count": 0,
+            "method": "none"
+        }
