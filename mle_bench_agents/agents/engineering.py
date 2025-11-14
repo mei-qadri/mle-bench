@@ -98,7 +98,26 @@ class EngineeringAgent(Agent):
             y_train = train_df[target_col]
 
             if test_df is not None:
-                X_test = test_df
+                # Align test columns with training columns
+                # Drop columns that are in test but not in train (e.g., 'id', 'Id', 'ID')
+                # Keep only columns that are in both
+                common_cols = [col for col in X_train.columns if col in test_df.columns]
+
+                # If no common columns, test might have different structure
+                # Try dropping potential ID columns
+                if len(common_cols) == 0:
+                    id_cols = [col for col in test_df.columns if col.lower() in ['id', 'index']]
+                    if id_cols:
+                        test_df_no_id = test_df.drop(columns=id_cols)
+                        common_cols = [col for col in X_train.columns if col in test_df_no_id.columns]
+                        X_test = test_df_no_id[common_cols]
+                    else:
+                        X_test = test_df
+                else:
+                    X_test = test_df[common_cols]
+
+                # Reorder to match X_train column order
+                X_test = X_test[X_train.columns]
             else:
                 X_test = X_train.head(0)  # Empty dataframe with same columns
 
