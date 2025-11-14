@@ -1,0 +1,496 @@
+# Message Templates for Multi-Agent System
+# Version: 1.0
+
+# Base Message Structure
+base_message:
+  message_id: "<UUID>"
+  timestamp: "<float>"
+  sender_id: "<agent_id>"
+  receiver_id: "<agent_id or broadcast>"
+  message_type: "<REQUEST|RESPONSE|UPDATE|ERROR|ALERT>"
+  priority: "<0-10>"
+  correlation_id: "<UUID for request-response pairing>"
+  requires_response: "<bool>"
+  timeout: "<float seconds>"
+  payload: "<dict>"
+
+# Message Templates by Type
+
+# 1. REQUEST Messages
+request_templates:
+  # Orchestrator → Analysis
+  analyze_competition:
+    sender_id: "A1_orchestrator"
+    receiver_id: "A2_analysis"
+    message_type: "REQUEST"
+    priority: 8
+    requires_response: true
+    timeout: 3600
+    payload:
+      action: "analyze_competition"
+      competition_id: "<str>"
+      description: "<str>"
+      sample_submission: "<dict>"
+      data_path: "/home/data/"
+      time_budget: "<int seconds>"
+
+  # Orchestrator → Engineering
+  engineer_features:
+    sender_id: "A1_orchestrator"
+    receiver_id: "A4_engineering"
+    message_type: "REQUEST"
+    priority: 8
+    requires_response: true
+    timeout: 5400
+    payload:
+      action: "engineer_features"
+      competition_id: "<str>"
+      competition_type: "<str>"
+      data_summary: "<dict>"
+      recommendations: "<list>"
+      time_budget: "<int seconds>"
+
+  # Orchestrator → Domain Specialist
+  train_models:
+    sender_id: "A1_orchestrator"
+    receiver_id: "<A3a|A3b|A3c|A3d>"
+    message_type: "REQUEST"
+    priority: 9
+    requires_response: true
+    timeout: 21600
+    payload:
+      action: "train_models"
+      competition_id: "<str>"
+      phase: "<baseline|advanced|final>"
+      config:
+        max_models: "<int>"
+        enable_hpo: "<bool>"
+        hpo_trials: "<int>"
+        use_advanced_models: "<bool>"
+      data:
+        X_train: "<array>"
+        y_train: "<array>"
+        X_test: "<array>"
+        cv_folds: "<object>"
+      metric_name: "<str>"
+      metric_direction: "<maximize|minimize>"
+      time_budget: "<int seconds>"
+
+  # Orchestrator → Ensemble
+  create_ensemble:
+    sender_id: "A1_orchestrator"
+    receiver_id: "A5_ensemble"
+    message_type: "REQUEST"
+    priority: 8
+    requires_response: true
+    timeout: 3600
+    payload:
+      action: "create_ensemble"
+      models: "<list[dict]>"
+      predictions: "<dict>"
+      cv_scores: "<dict>"
+      metric_name: "<str>"
+      metric_direction: "<maximize|minimize>"
+      time_budget: "<int seconds>"
+
+  # Orchestrator → Validation
+  validate_submission:
+    sender_id: "A1_orchestrator"
+    receiver_id: "A6_validation"
+    message_type: "REQUEST"
+    priority: 9
+    requires_response: true
+    timeout: 300
+    payload:
+      action: "validate_submission"
+      competition_id: "<str>"
+      predictions: "<array>"
+      sample_submission_path: "/home/data/sample_submission.csv"
+      output_path: "/home/submission/submission.csv"
+      metric_name: "<str>"
+      cv_score: "<float>"
+      time_budget: "<int seconds>"
+
+  # Domain Specialist → HPO Sub-agent
+  spawn_hpo:
+    sender_id: "<A3*>"
+    receiver_id: "HPO_subagent"
+    message_type: "REQUEST"
+    priority: 7
+    requires_response: true
+    timeout: 10800
+    payload:
+      action: "optimize_hyperparameters"
+      model_name: "<str>"
+      search_space: "<dict>"
+      X_train: "<array>"
+      y_train: "<array>"
+      cv_folds: "<object>"
+      metric_name: "<str>"
+      n_trials: "<int>"
+      time_budget: "<int seconds>"
+
+# 2. RESPONSE Messages
+response_templates:
+  # Analysis → Orchestrator
+  analysis_complete:
+    sender_id: "A2_analysis"
+    receiver_id: "A1_orchestrator"
+    message_type: "RESPONSE"
+    priority: 8
+    requires_response: false
+    payload:
+      status: "<success|error>"
+      competition_analysis:
+        competition_id: "<str>"
+        task_type: "<str>"
+        domain: "<CV|NLP|tabular|audio|multimodal>"
+        metric_name: "<str>"
+        metric_direction: "<maximize|minimize>"
+      dataset_summary: "<dict>"
+      target_analysis: "<dict>"
+      feature_analysis: "<dict>"
+      data_quality: "<dict>"
+      complexity_assessment:
+        overall: "<low|medium|high>"
+        factors: "<dict>"
+      recommendations: "<list[dict]>"
+      visualizations: "<list[str]>"
+      execution_time: "<float seconds>"
+
+  # Engineering → Orchestrator
+  engineering_complete:
+    sender_id: "A4_engineering"
+    receiver_id: "A1_orchestrator"
+    message_type: "RESPONSE"
+    priority: 8
+    requires_response: false
+    payload:
+      status: "<success|error>"
+      preprocessing_pipeline: "<object>"
+      cv_folds: "<object>"
+      feature_summary:
+        original_features: "<int>"
+        engineered_features: "<int>"
+        total_features: "<int>"
+        numerical_features: "<int>"
+        categorical_features: "<int>"
+        dropped_features: "<int>"
+      data_ready:
+        X_train: "<array>"
+        y_train: "<array>"
+        X_test: "<array>"
+      execution_time: "<float seconds>"
+
+  # Domain Specialist → Orchestrator
+  training_complete:
+    sender_id: "<A3*>"
+    receiver_id: "A1_orchestrator"
+    message_type: "RESPONSE"
+    priority: 9
+    requires_response: false
+    payload:
+      status: "<success|error>"
+      phase: "<baseline|advanced|final>"
+      models_trained:
+        - model_id: "<str>"
+          model_name: "<str>"
+          model_config: "<dict>"
+          cv_score_mean: "<float>"
+          cv_score_std: "<float>"
+          cv_scores_per_fold: "<list[float]>"
+          test_predictions: "<array>"
+          model_checkpoint: "<str path>"
+          training_time_seconds: "<float>"
+          hpo_used: "<bool>"
+      best_model:
+        model_id: "<str>"
+        cv_score: "<float>"
+      execution_time: "<float seconds>"
+      resource_usage:
+        peak_memory_mb: "<float>"
+        gpu_used: "<bool>"
+
+  # Ensemble → Orchestrator
+  ensemble_complete:
+    sender_id: "A5_ensemble"
+    receiver_id: "A1_orchestrator"
+    message_type: "RESPONSE"
+    priority: 8
+    requires_response: false
+    payload:
+      status: "<success|error>"
+      ensemble_strategy: "<weighted_average|voting|stacking|blending>"
+      ensemble_used: "<bool>"
+      ensemble_details:
+        models_used: "<list[str]>"
+        weights: "<list[float]>"
+        diversity_score: "<float>"
+      performance:
+        ensemble_cv_score: "<float>"
+        best_single_cv_score: "<float>"
+        improvement: "<float>"
+      predictions:
+        train: "<array>"
+        test: "<array>"
+      execution_time: "<float seconds>"
+
+  # Validation → Orchestrator
+  validation_complete:
+    sender_id: "A6_validation"
+    receiver_id: "A1_orchestrator"
+    message_type: "RESPONSE"
+    priority: 9
+    requires_response: false
+    payload:
+      status: "<success|error>"
+      is_valid: "<bool>"
+      submission_path: "/home/submission/submission.csv"
+      validation_results:
+        format_check: "<passed|failed>"
+        schema_check: "<passed|failed>"
+        data_quality_check: "<passed|failed>"
+        id_check: "<passed|failed>"
+        grading_server_check: "<passed|failed|unavailable>"
+      warnings: "<list[str]>"
+      errors: "<list[str]>"
+      auto_fixes_applied: "<list[str]>"
+      submission_metadata:
+        n_rows: "<int>"
+        n_cols: "<int>"
+        file_size_mb: "<float>"
+        cv_score: "<float>"
+      execution_time: "<float seconds>"
+
+# 3. UPDATE Messages
+update_templates:
+  # Agent → Orchestrator (Progress Update)
+  progress_update:
+    sender_id: "<any_agent>"
+    receiver_id: "A1_orchestrator"
+    message_type: "UPDATE"
+    priority: 5
+    requires_response: false
+    payload:
+      update_type: "progress"
+      agent_id: "<str>"
+      task: "<str>"
+      progress_percent: "<float>"
+      status: "<in_progress|paused|resumed>"
+      estimated_completion: "<float seconds>"
+
+  # Orchestrator → Broadcast (Phase Transition)
+  phase_transition:
+    sender_id: "A1_orchestrator"
+    receiver_id: "broadcast"
+    message_type: "UPDATE"
+    priority: 7
+    requires_response: false
+    payload:
+      update_type: "phase_transition"
+      old_phase: "<str>"
+      new_phase: "<str>"
+      time_allocated: "<int seconds>"
+      time_remaining: "<int seconds>"
+
+  # Resource Manager → Broadcast (Resource Update)
+  resource_update:
+    sender_id: "A7_resource_manager"
+    receiver_id: "broadcast"
+    message_type: "UPDATE"
+    priority: 6
+    requires_response: false
+    payload:
+      update_type: "resource_metrics"
+      metrics:
+        cpu_percent: "<float>"
+        memory_percent: "<float>"
+        gpu_percent: "<float>"
+        disk_percent: "<float>"
+        time_remaining: "<int seconds>"
+
+# 4. ERROR Messages
+error_templates:
+  # Any Agent → Orchestrator
+  agent_error:
+    sender_id: "<any_agent>"
+    receiver_id: "A1_orchestrator"
+    message_type: "ERROR"
+    priority: 8
+    requires_response: true
+    payload:
+      error_type: "<transient|resource|data|configuration|fatal>"
+      error_code: "<str>"
+      error_message: "<str>"
+      stack_trace: "<str>"
+      context:
+        agent_id: "<str>"
+        task: "<str>"
+        phase: "<str>"
+        timestamp: "<float>"
+      retry_attempted: "<bool>"
+      retry_count: "<int>"
+      recovery_suggestion: "<str>"
+
+  # Orchestrator → Agent (Error Acknowledgment)
+  error_acknowledged:
+    sender_id: "A1_orchestrator"
+    receiver_id: "<any_agent>"
+    message_type: "RESPONSE"
+    priority: 8
+    requires_response: false
+    payload:
+      error_id: "<str>"
+      acknowledged: true
+      action: "<retry|fallback|abort>"
+      fallback_strategy: "<str>"
+      instructions: "<str>"
+
+# 5. ALERT Messages
+alert_templates:
+  # Resource Manager → Orchestrator
+  high_resource_usage:
+    sender_id: "A7_resource_manager"
+    receiver_id: "A1_orchestrator"
+    message_type: "ALERT"
+    priority: 8
+    requires_response: false
+    payload:
+      alert_type: "<high_cpu|high_memory|high_gpu_memory|low_disk_space>"
+      severity: "<warning|critical>"
+      current_value: "<float>"
+      threshold: "<float>"
+      recommendation: "<str>"
+      action_required: "<bool>"
+
+  # Resource Manager → Broadcast
+  time_critical:
+    sender_id: "A7_resource_manager"
+    receiver_id: "broadcast"
+    message_type: "ALERT"
+    priority: 10
+    requires_response: false
+    payload:
+      alert_type: "time_critical"
+      time_remaining: "<int seconds>"
+      current_phase: "<str>"
+      recommendation: "finalize_submission_immediately"
+      action_required: true
+
+  # Resource Manager → Orchestrator
+  behind_schedule:
+    sender_id: "A7_resource_manager"
+    receiver_id: "A1_orchestrator"
+    message_type: "ALERT"
+    priority: 7
+    requires_response: false
+    payload:
+      alert_type: "behind_schedule"
+      time_used_percent: "<float>"
+      expected_progress_percent: "<float>"
+      gap_percent: "<float>"
+      recommendation: "skip_optional_optimizations"
+
+  # Orchestrator → Broadcast (Emergency Stop)
+  emergency_stop:
+    sender_id: "A1_orchestrator"
+    receiver_id: "broadcast"
+    message_type: "ALERT"
+    priority: 10
+    requires_response: false
+    payload:
+      alert_type: "emergency_stop"
+      reason: "<str>"
+      action: "stop_current_task_immediately"
+      next_phase: "submission"
+
+# Priority Levels
+# 10: Critical (emergency stop, time critical)
+# 9:  High (training results, validation results)
+# 8:  Elevated (analysis complete, engineering complete, resource alerts)
+# 7:  Medium (phase transitions, warnings)
+# 6:  Normal (resource updates)
+# 5:  Low (progress updates)
+# 0-4: Informational
+
+# Message Flow Examples
+example_flows:
+  complete_workflow:
+    - step: 1
+      from: "A1_orchestrator"
+      to: "A2_analysis"
+      template: "analyze_competition"
+      description: "Request competition analysis"
+
+    - step: 2
+      from: "A2_analysis"
+      to: "A1_orchestrator"
+      template: "analysis_complete"
+      description: "Return analysis results"
+
+    - step: 3
+      from: "A1_orchestrator"
+      to: "A4_engineering"
+      template: "engineer_features"
+      description: "Request feature engineering"
+
+    - step: 4
+      from: "A4_engineering"
+      to: "A1_orchestrator"
+      template: "engineering_complete"
+      description: "Return engineered features"
+
+    - step: 5
+      from: "A1_orchestrator"
+      to: "<A3*>"
+      template: "train_models"
+      description: "Request model training"
+
+    - step: 6
+      from: "<A3*>"
+      to: "A1_orchestrator"
+      template: "training_complete"
+      description: "Return trained models"
+
+    - step: 7
+      from: "A1_orchestrator"
+      to: "A5_ensemble"
+      template: "create_ensemble"
+      description: "Request ensemble creation"
+
+    - step: 8
+      from: "A5_ensemble"
+      to: "A1_orchestrator"
+      template: "ensemble_complete"
+      description: "Return ensemble predictions"
+
+    - step: 9
+      from: "A1_orchestrator"
+      to: "A6_validation"
+      template: "validate_submission"
+      description: "Request submission validation"
+
+    - step: 10
+      from: "A6_validation"
+      to: "A1_orchestrator"
+      template: "validation_complete"
+      description: "Confirm submission saved"
+
+  error_recovery:
+    - step: 1
+      from: "<A3*>"
+      to: "A1_orchestrator"
+      template: "agent_error"
+      description: "Report training error"
+
+    - step: 2
+      from: "A1_orchestrator"
+      to: "<A3*>"
+      template: "error_acknowledged"
+      description: "Acknowledge error and provide fallback"
+
+    - step: 3
+      from: "<A3*>"
+      to: "A1_orchestrator"
+      template: "training_complete"
+      description: "Complete with fallback strategy"

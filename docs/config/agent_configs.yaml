@@ -1,0 +1,407 @@
+# Multi-Agent System Configuration
+# Version: 1.0
+
+# Agent Definitions
+agents:
+  A1_orchestrator:
+    name: "Orchestrator Agent"
+    model: "claude-sonnet-4.5"
+    temperature: 0.3
+    max_tokens: 4096
+    context_window: 200000
+    can_spawn: true
+    system_prompt_path: "docs/prompts/A1_orchestrator.md"
+    role: "coordination_planning"
+    priority: 10
+    history_tracking:
+      track_decisions: true
+      track_communications: true
+      track_resources: true
+      retention_policy: "full"
+      max_history_tokens: 50000
+
+  A2_analysis:
+    name: "Analysis Agent"
+    model: "claude-sonnet-4.5"
+    temperature: 0.4
+    max_tokens: 8192
+    context_window: 200000
+    can_spawn: false
+    system_prompt_path: "docs/prompts/A2_analysis.md"
+    role: "data_analysis"
+    priority: 8
+    history_tracking:
+      track_decisions: true
+      track_communications: true
+      track_resources: false
+      retention_policy: "summary"
+      max_history_tokens: 20000
+
+  A3a_cv_specialist:
+    name: "Computer Vision Specialist"
+    model: "claude-sonnet-4.5"
+    temperature: 0.2
+    max_tokens: 4096
+    context_window: 200000
+    can_spawn: true
+    system_prompt_path: "docs/prompts/A3a_cv_specialist.md"
+    role: "cv_modeling"
+    priority: 9
+    history_tracking:
+      track_decisions: true
+      track_communications: true
+      track_resources: true
+      retention_policy: "checkpoints"
+      max_history_tokens: 30000
+
+  A3b_nlp_specialist:
+    name: "NLP Specialist"
+    model: "claude-sonnet-4.5"
+    temperature: 0.2
+    max_tokens: 4096
+    context_window: 200000
+    can_spawn: true
+    system_prompt_path: "docs/prompts/A3b_nlp_specialist.md"
+    role: "nlp_modeling"
+    priority: 9
+    history_tracking:
+      track_decisions: true
+      track_communications: true
+      track_resources: true
+      retention_policy: "checkpoints"
+      max_history_tokens: 30000
+
+  A3c_tabular_specialist:
+    name: "Tabular Specialist"
+    model: "claude-sonnet-4.5"
+    temperature: 0.2
+    max_tokens: 4096
+    context_window: 200000
+    can_spawn: true
+    system_prompt_path: "docs/prompts/A3c_tabular_specialist.md"
+    role: "tabular_modeling"
+    priority: 9
+    history_tracking:
+      track_decisions: true
+      track_communications: true
+      track_resources: true
+      retention_policy: "checkpoints"
+      max_history_tokens: 30000
+
+  A3d_audio_specialist:
+    name: "Audio Specialist"
+    model: "claude-sonnet-4.5"
+    temperature: 0.2
+    max_tokens: 4096
+    context_window: 200000
+    can_spawn: true
+    system_prompt_path: "docs/prompts/A3d_audio_specialist.md"
+    role: "audio_modeling"
+    priority: 9
+    history_tracking:
+      track_decisions: true
+      track_communications: true
+      track_resources: true
+      retention_policy: "checkpoints"
+      max_history_tokens: 30000
+
+  A4_engineering:
+    name: "Engineering Agent"
+    model: "claude-sonnet-4.5"
+    temperature: 0.3
+    max_tokens: 4096
+    context_window: 200000
+    can_spawn: false
+    system_prompt_path: "docs/prompts/A4_engineering.md"
+    role: "feature_engineering"
+    priority: 8
+    history_tracking:
+      track_decisions: true
+      track_communications: true
+      track_resources: false
+      retention_policy: "summary"
+      max_history_tokens: 15000
+
+  A5_ensemble:
+    name: "Ensemble Agent"
+    model: "claude-sonnet-4.5"
+    temperature: 0.2
+    max_tokens: 4096
+    context_window: 200000
+    can_spawn: true
+    system_prompt_path: "docs/prompts/A5_ensemble.md"
+    role: "ensembling"
+    priority: 8
+    history_tracking:
+      track_decisions: true
+      track_communications: true
+      track_resources: false
+      retention_policy: "summary"
+      max_history_tokens: 10000
+
+  A6_validation:
+    name: "Validation Agent"
+    model: "claude-haiku-4"
+    temperature: 0.1
+    max_tokens: 2048
+    context_window: 200000
+    can_spawn: false
+    system_prompt_path: "docs/prompts/A6_validation.md"
+    role: "validation"
+    priority: 9
+    history_tracking:
+      track_decisions: false
+      track_communications: true
+      track_resources: false
+      retention_policy: "minimal"
+      max_history_tokens: 5000
+
+  A7_resource_manager:
+    name: "Resource Manager"
+    model: "claude-haiku-4"
+    temperature: 0.1
+    max_tokens: 2048
+    context_window: 50000
+    can_spawn: false
+    system_prompt_path: "docs/prompts/A7_resource_manager.md"
+    role: "resource_monitoring"
+    priority: 10
+    continuous: true  # Runs continuously
+    check_interval: 30  # seconds
+    history_tracking:
+      track_decisions: false
+      track_communications: false
+      track_resources: true
+      retention_policy: "metrics_only"
+      max_history_tokens: 5000
+
+# Plug Configurations
+plugs:
+  P1_data_loading:
+    name: "Data Loading Plug"
+    chunk_size: 10000
+    lazy_loading: true
+    max_memory_percent: 40
+    supported_formats:
+      - csv
+      - parquet
+      - json
+      - png
+      - jpg
+      - tiff
+      - dicom
+      - wav
+      - mp3
+    cache_enabled: true
+    cache_dir: "/tmp/data_cache"
+
+  P2_eda:
+    name: "EDA Plug"
+    max_visualizations: 10
+    visualization_format: "png"
+    statistical_tests:
+      - normality
+      - stationarity
+    correlation_threshold: 0.95
+    outlier_method: "IQR"
+    missing_threshold: 0.5
+
+  P3_preprocessing:
+    name: "Preprocessing Plug"
+    missing_strategy: "auto"
+    scaling_method: "standard"
+    categorical_encoding: "auto"
+    text_tokenizer: "auto"
+    image_size: "auto"
+    cv_folds: 5
+    stratified: true
+    random_seed: 42
+
+  P4_feature_engineering:
+    name: "Feature Engineering Plug"
+    polynomial_degree: 2
+    interaction_depth: 2
+    aggregation_functions:
+      - mean
+      - std
+      - min
+      - max
+      - median
+    text_vectorizer: "tfidf"
+    max_features: 1000
+    feature_selection_method: "auto"
+
+  P5_model_training:
+    name: "Model Training Plug"
+    device: "auto"
+    mixed_precision: true
+    gradient_accumulation_steps: 1
+    early_stopping_patience: 5
+    checkpoint_frequency: 1
+    log_frequency: 100
+    max_epochs: 100
+    learning_rate: "auto"
+    batch_size: "auto"
+    optimizer: "auto"
+    scheduler: "auto"
+
+  P6_hpo:
+    name: "Hyperparameter Optimization Plug"
+    strategy: "bayesian"
+    max_trials: 50
+    parallel_trials: 2
+    timeout_per_trial: 3600
+    optimization_metric: "auto"
+
+  P7_cross_validation:
+    name: "Cross-Validation Plug"
+    n_splits: 5
+    stratified: true
+    shuffle: true
+    random_state: 42
+    cv_strategy: "auto"
+    group_column: null
+
+  P8_ensemble:
+    name: "Ensemble Plug"
+    ensemble_method: "auto"
+    weighting: "optimized"
+    stacking_meta_learner: "ridge"
+    blending_holdout_size: 0.2
+    optimization_metric: "auto"
+    n_jobs: -1
+
+  P9_submission:
+    name: "Submission Generation Plug"
+    submission_filename: "submission.csv"
+    float_precision: 6
+    rle_encoding: "auto"
+    id_column: "auto"
+    prediction_columns: "auto"
+    post_processing:
+      clip: true
+      round: false
+
+  P10_validation:
+    name: "Validation Plug"
+    grading_server_url: "http://localhost:5000/validate"
+    auto_fix: true
+    validation_checks:
+      - format
+      - schema
+      - ids
+      - values
+      - dtypes
+    strict_mode: false
+
+  P11_metrics:
+    name: "Metric Computation Plug"
+    metric: "auto"
+    direction: "auto"
+    averaging: "auto"
+    threshold: 0.5
+    bootstrap_samples: 1000
+
+  P12_logging:
+    name: "Logging and Monitoring Plug"
+    log_level: "INFO"
+    log_file: "/home/logs/system.log"
+    metrics_file: "/home/logs/metrics.json"
+    monitoring_frequency: 30
+    track_experiments: true
+    dashboard_enabled: false
+    alert_on_errors: true
+
+# Workflow Configuration
+workflow:
+  time_allocations:
+    default:
+      understanding: 0.10
+      preparation: 0.15
+      modeling: 0.60
+      ensembling: 0.10
+      submission: 0.05
+
+    complexity_adjustments:
+      low:
+        understanding: 0.08
+        preparation: 0.12
+        modeling: 0.65
+        ensembling: 0.10
+        submission: 0.05
+      medium:
+        understanding: 0.10
+        preparation: 0.15
+        modeling: 0.60
+        ensembling: 0.10
+        submission: 0.05
+      high:
+        understanding: 0.12
+        preparation: 0.18
+        modeling: 0.55
+        ensembling: 0.10
+        submission: 0.05
+
+  modeling_phase_allocations:
+    baseline: 0.15
+    advanced: 0.70
+    final: 0.15
+
+  resource_thresholds:
+    cpu:
+      warning: 90
+      critical: 95
+    gpu:
+      warning: 90
+      critical: 95
+    memory:
+      warning: 80
+      critical: 85
+    disk:
+      warning: 85
+      critical: 90
+    time:
+      warning_remaining: 1800
+      critical_remaining: 600
+
+# Message Queue Configuration
+message_queue:
+  max_queue_size: 1000
+  message_timeout: 3600
+  priority_levels: 11  # 0-10
+  broadcast_enabled: true
+
+# State Management
+state_management:
+  persistence_enabled: true
+  persistence_interval: 300  # seconds
+  state_file: "/home/logs/state.json"
+  versioning_enabled: true
+  max_history_versions: 100
+
+# Environment Paths
+paths:
+  data_dir: "/home/data/"
+  submission_dir: "/home/submission/"
+  logs_dir: "/home/logs/"
+  models_dir: "/home/code/models/"
+  cache_dir: "/tmp/cache/"
+
+# Competition Settings
+competition:
+  default_time_budget: 86400  # 24 hours
+  min_cv_folds: 2
+  max_cv_folds: 10
+  default_cv_folds: 5
+  random_seed: 42
+
+# Performance Targets
+targets:
+  medal_rate: 0.35
+  gold_rate: 0.10
+  silver_rate: 0.20
+  bronze_rate: 0.30
+  completion_rate: 0.95
+  gpu_utilization: 0.70
+  time_utilization: 0.80
+  peak_memory_usage: 0.80
