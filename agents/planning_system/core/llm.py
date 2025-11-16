@@ -162,23 +162,26 @@ def get_gpt_oss_120b_config() -> LLMConfig:
     )
 
 
-def get_llama_3_8b_config(load_in_4bit: bool = False) -> LLMConfig:
+def get_llama_3_8b_config(load_in_4bit: bool = False, force_cpu: bool = False) -> LLMConfig:
     """
     Configuration for Llama 3.1 8B Instruct (open-source).
 
     Args:
-        load_in_4bit: Use 4-bit quantization to reduce memory
+        load_in_4bit: Use 4-bit quantization to reduce memory (~5GB GPU)
+        force_cpu: Force CPU execution (slow but uses RAM instead of GPU)
     """
+    extra_params = {
+        "device_map": "cpu" if force_cpu else "auto",
+        "torch_dtype": "auto",
+        "load_in_4bit": load_in_4bit and not force_cpu,  # Can't use quantization on CPU
+    }
+
     return LLMConfig(
         model_name="meta-llama/Llama-3.1-8B-Instruct",
         provider="huggingface",
         temperature=0.7,
         max_tokens=8192,
-        extra_params={
-            "device_map": "auto",
-            "torch_dtype": "auto",
-            "load_in_4bit": load_in_4bit,
-        },
+        extra_params=extra_params,
     )
 
 
@@ -223,22 +226,30 @@ def get_qwen_7b_config(load_in_4bit: bool = False) -> LLMConfig:
 
 
 # Open-Source Model Presets (matching commercial API presets)
+# Note: All presets use the SAME model to avoid loading multiple models into GPU memory
 
 def get_oss_high_reasoning_config() -> LLMConfig:
     """Open-source configuration for complex planning and reasoning tasks"""
-    return get_gpt_oss_20b_config()
+    # Use same model as other tasks to avoid CUDA OOM
+    # Check env var for CPU mode
+    force_cpu = os.getenv("LLM_FORCE_CPU", "false").lower() == "true"
+    return get_llama_3_8b_config(load_in_4bit=True, force_cpu=force_cpu)
 
 
 def get_oss_code_generation_config() -> LLMConfig:
     """Open-source configuration for code generation tasks"""
-    return get_llama_3_8b_config(load_in_4bit=True)
+    force_cpu = os.getenv("LLM_FORCE_CPU", "false").lower() == "true"
+    return get_llama_3_8b_config(load_in_4bit=True, force_cpu=force_cpu)
 
 
 def get_oss_fast_execution_config() -> LLMConfig:
     """Open-source configuration for quick, simple tasks"""
-    return get_mistral_7b_config(load_in_4bit=True)
+    # Use same model as other tasks to avoid CUDA OOM
+    force_cpu = os.getenv("LLM_FORCE_CPU", "false").lower() == "true"
+    return get_llama_3_8b_config(load_in_4bit=True, force_cpu=force_cpu)
 
 
 def get_oss_default_config() -> LLMConfig:
     """Open-source default balanced configuration"""
-    return get_llama_3_8b_config(load_in_4bit=True)
+    force_cpu = os.getenv("LLM_FORCE_CPU", "false").lower() == "true"
+    return get_llama_3_8b_config(load_in_4bit=True, force_cpu=force_cpu)
