@@ -44,8 +44,8 @@ def plan_command(args):
             competition_id=args.competition_id,
         )
 
-    # Create planning module
-    planner = PlanningModule()
+    # Create planning module with model provider
+    planner = PlanningModule(model_provider=args.model_provider)
 
     # Generate plan
     plan = planner.plan_workflow(problem_spec)
@@ -103,7 +103,7 @@ def run_command(args):
     print("STEP 1: PLANNING")
     print("="*60)
 
-    planner = PlanningModule()
+    planner = PlanningModule(model_provider=args.model_provider)
     plan = planner.plan_workflow(problem_spec)
 
     # Step 3: Human review (if not skipped)
@@ -169,6 +169,12 @@ def main():
         default="./plans",
         help="Output directory for plan files",
     )
+    plan_parser.add_argument(
+        "--model-provider",
+        default="openai",
+        choices=["openai", "anthropic", "opensource"],
+        help="Model provider to use (openai, anthropic, or opensource)",
+    )
 
     # Execute command
     exec_parser = subparsers.add_parser("execute", help="Execute a workflow plan")
@@ -211,6 +217,12 @@ def main():
         "--skip-approval",
         action="store_true",
         help="Skip human approval step",
+    )
+    run_parser.add_argument(
+        "--model-provider",
+        default="openai",
+        choices=["openai", "anthropic", "opensource"],
+        help="Model provider to use (openai, anthropic, or opensource)",
     )
 
     args = parser.parse_args()

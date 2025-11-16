@@ -40,7 +40,11 @@ def main():
 
     # Step 2: Create a planning module
     print("Creating planning module...")
+    # Use commercial APIs (default)
     planner = PlanningModule()
+
+    # Or use open-source models (zero cost, local execution):
+    # planner = PlanningModule(model_provider="opensource")
 
     # Step 3: Generate workflow plan
     print("\nGenerating workflow plan...")

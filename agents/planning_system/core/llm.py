@@ -220,3 +220,25 @@ def get_qwen_7b_config(load_in_4bit: bool = False) -> LLMConfig:
             "load_in_4bit": load_in_4bit,
         },
     )
+
+
+# Open-Source Model Presets (matching commercial API presets)
+
+def get_oss_high_reasoning_config() -> LLMConfig:
+    """Open-source configuration for complex planning and reasoning tasks"""
+    return get_gpt_oss_20b_config()
+
+
+def get_oss_code_generation_config() -> LLMConfig:
+    """Open-source configuration for code generation tasks"""
+    return get_llama_3_8b_config(load_in_4bit=True)
+
+
+def get_oss_fast_execution_config() -> LLMConfig:
+    """Open-source configuration for quick, simple tasks"""
+    return get_mistral_7b_config(load_in_4bit=True)
+
+
+def get_oss_default_config() -> LLMConfig:
+    """Open-source default balanced configuration"""
+    return get_llama_3_8b_config(load_in_4bit=True)

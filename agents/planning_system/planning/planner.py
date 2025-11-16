@@ -182,10 +182,20 @@ class PlanningModule:
         llm_config: Optional[LLMConfig] = None,
         agent_templates_file: Optional[Path] = None,
         plugin_catalog_file: Optional[Path] = None,
+        model_provider: str = "openai",  # "openai", "anthropic", or "opensource"
     ):
-        self.llm_config = llm_config or get_high_reasoning_config()
+        self.model_provider = model_provider
+        self.llm_config = llm_config or self._get_planner_config()
         self.agent_templates = self._load_agent_templates(agent_templates_file)
         self.plugin_catalog = self._load_plugin_catalog(plugin_catalog_file)
+
+    def _get_planner_config(self) -> LLMConfig:
+        """Get LLM config for the planner based on provider"""
+        if self.model_provider == "opensource":
+            from agents.planning_system.core.llm import get_oss_high_reasoning_config
+            return get_oss_high_reasoning_config()
+        else:
+            return get_high_reasoning_config()
 
     def _load_agent_templates(self, filepath: Optional[Path]) -> Dict:
         """Load agent templates"""
@@ -402,19 +412,33 @@ class PlanningModule:
         self, subtask: Subtask, problem_analysis: Dict
     ) -> Agent:
         """Create a specialized agent for a specific subtask"""
-        from agents.planning_system.core.llm import (
-            get_default_config,
-            get_code_generation_config,
-            get_fast_execution_config,
-        )
+        # Select LLM based on task complexity and model provider
+        if self.model_provider == "opensource":
+            from agents.planning_system.core.llm import (
+                get_oss_default_config,
+                get_oss_code_generation_config,
+                get_oss_fast_execution_config,
+            )
 
-        # Select LLM based on task complexity
-        if subtask.requires_complex_reasoning:
-            llm_config = get_code_generation_config()  # Use Claude for complex tasks
-        elif subtask.estimated_time_minutes < 60:
-            llm_config = get_fast_execution_config()  # Use mini for quick tasks
+            if subtask.requires_complex_reasoning:
+                llm_config = get_oss_code_generation_config()
+            elif subtask.estimated_time_minutes < 60:
+                llm_config = get_oss_fast_execution_config()
+            else:
+                llm_config = get_oss_default_config()
         else:
-            llm_config = get_default_config()  # Use default for regular tasks
+            from agents.planning_system.core.llm import (
+                get_default_config,
+                get_code_generation_config,
+                get_fast_execution_config,
+            )
+
+            if subtask.requires_complex_reasoning:
+                llm_config = get_code_generation_config()  # Use Claude for complex tasks
+            elif subtask.estimated_time_minutes < 60:
+                llm_config = get_fast_execution_config()  # Use mini for quick tasks
+            else:
+                llm_config = get_default_config()  # Use default for regular tasks
 
         # Create role
         role = AgentRole(
