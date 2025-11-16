@@ -5,11 +5,20 @@ Usage:
     python -m agents.planning_system.cli plan <competition_id>
     python -m agents.planning_system.cli execute <plan_file>
     python -m agents.planning_system.cli run <competition_id>
+
+Or use the helper script:
+    ./agents/planning_system/run_planner.sh plan <competition_id>
 """
 
 import argparse
 from pathlib import Path
 import sys
+
+# Ensure mle-bench is in path
+if __name__ == "__main__":
+    mle_bench_dir = Path(__file__).parent.parent.parent.absolute()
+    if str(mle_bench_dir) not in sys.path:
+        sys.path.insert(0, str(mle_bench_dir))
 
 from agents.planning_system.planning.planner import (
     PlanningModule,

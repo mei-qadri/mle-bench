@@ -4,7 +4,11 @@ Simple Example: Using the Agentic Planning System
 This demonstrates how to use the planning system on a simple competition.
 """
 
+import sys
 from pathlib import Path
+
+# Add mle-bench to path
+sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 from agents.planning_system.planning.planner import (
     PlanningModule,
     ProblemSpecification,

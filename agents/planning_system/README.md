@@ -78,14 +78,19 @@ cd /home/user/mle-bench/agents/planning_system
 
 ### Command-Line Interface
 
+**Note:** Use the standalone runner script for easiest usage:
+
 #### 1. Plan Only
 
 Generate a workflow plan without executing:
 
 ```bash
-python -m agents.planning_system.cli plan spaceship-titanic \
-    --mlebench-dir /home/user/mle-bench \
-    --output ./plans
+# From mle-bench directory
+cd /path/to/mle-bench
+python agents/planning_system/run.py plan spaceship-titanic --output ./plans
+
+# Or use the shell script
+./agents/planning_system/run_planner.sh plan spaceship-titanic --output ./plans
 ```
 
 #### 2. Plan + Execute
@@ -93,8 +98,12 @@ python -m agents.planning_system.cli plan spaceship-titanic \
 Plan and execute in one step:
 
 ```bash
-python -m agents.planning_system.cli run spaceship-titanic \
-    --mlebench-dir /home/user/mle-bench \
+python agents/planning_system/run.py run spaceship-titanic \
+    --workspace ./workspace \
+    --output ./output
+
+# Or with shell script
+./agents/planning_system/run_planner.sh run spaceship-titanic \
     --workspace ./workspace \
     --output ./output
 ```
@@ -104,7 +113,7 @@ python -m agents.planning_system.cli run spaceship-titanic \
 For automated workflows:
 
 ```bash
-python -m agents.planning_system.cli run spaceship-titanic \
+python agents/planning_system/run.py run spaceship-titanic \
     --skip-approval \
     --workspace ./workspace
 ```
