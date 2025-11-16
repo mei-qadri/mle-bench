@@ -62,8 +62,16 @@ Final Outputs & Reports
 # Core dependencies
 pip install pandas numpy scikit-learn networkx pyyaml
 
-# LLM providers (install as needed)
+# LLM providers - Choose one or more:
+
+# Option 1: Commercial APIs (easiest, but costs money)
 pip install openai anthropic
+
+# Option 2: Open-Source Models (free, private, runs locally)
+pip install transformers accelerate torch
+pip install bitsandbytes  # For 4-bit quantization
+
+# See OPENSOURCE_MODELS.md for complete guide
 ```
 
 ### Setup
@@ -190,6 +198,42 @@ This demonstrates:
 - Generating a workflow plan
 - Assigning plugins to agents
 - (Optional) Executing the workflow
+
+### Using Open-Source Models
+
+See `examples/opensource_models_example.py` and `OPENSOURCE_MODELS.md`:
+
+```bash
+python agents/planning_system/examples/opensource_models_example.py
+```
+
+Run the system with **zero API costs** using local open-source models:
+
+```python
+from agents.planning_system.core.llm import get_llama_3_8b_config
+from agents.planning_system.planning.planner import PlanningModule
+
+# Use Llama 3.1 8B (4-bit quantization, ~4GB RAM)
+llm_config = get_llama_3_8b_config(load_in_4bit=True)
+planner = PlanningModule(llm_config=llm_config)
+
+# Generate plan using local model (no API costs!)
+plan = planner.plan_workflow(problem_spec)
+```
+
+**Supported Models:**
+- GPT OSS 20B/120B (reasoning with mxfp4)
+- Llama 3.1 8B (general purpose, 4-bit)
+- Mistral 7B (efficient, 4-bit)
+- Qwen 2.5 7B (multilingual, 4-bit)
+
+**Benefits:**
+- ✓ No API costs
+- ✓ Full privacy
+- ✓ No rate limits
+- ✓ Offline operation
+
+See **[OPENSOURCE_MODELS.md](OPENSOURCE_MODELS.md)** for complete guide!
 
 ## Plugin Development
 
