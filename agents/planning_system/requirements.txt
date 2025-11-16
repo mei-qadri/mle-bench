@@ -14,13 +14,20 @@ networkx>=3.0
 # Configuration
 pyyaml>=6.0
 
-# LLM providers (install as needed)
+# LLM providers - Commercial APIs (install as needed)
 openai>=1.0.0
 anthropic>=0.18.0
+
+# LLM providers - Open-Source / Hugging Face (install as needed)
+# Uncomment to use open-source models locally:
+# transformers>=4.55.0
+# accelerate>=0.20.0
+# torch>=2.0.0
+# bitsandbytes>=0.41.0  # For 4-bit/8-bit quantization
+# triton>=3.4  # For mxfp4 quantization (GPT OSS models)
 
 # HTTP requests (for grading server)
 requests>=2.28.0
 
 # Optional: For deep learning plugins (future)
-# torch>=2.0.0
 # tensorflow>=2.12.0

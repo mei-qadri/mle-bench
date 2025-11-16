@@ -143,6 +143,23 @@ class Agent:
                     "Anthropic package not installed. Run: pip install anthropic"
                 )
 
+        elif self.llm_config.provider == "huggingface":
+            try:
+                from agents.planning_system.core.llm_hf import HuggingFaceLLM
+
+                # Extract extra params for HF model
+                extra_params = self.llm_config.extra_params or {}
+
+                self._llm_client = HuggingFaceLLM(
+                    model_name=self.llm_config.model_name,
+                    **extra_params
+                )
+            except ImportError as e:
+                raise ImportError(
+                    f"Hugging Face dependencies not installed: {e}\n"
+                    "Run: pip install transformers accelerate torch"
+                )
+
         else:
             raise ValueError(f"Unsupported LLM provider: {self.llm_config.provider}")
 
@@ -195,6 +212,8 @@ class Agent:
             response = self._call_openai(prompt)
         elif self.llm_config.provider == "anthropic":
             response = self._call_anthropic(prompt)
+        elif self.llm_config.provider == "huggingface":
+            response = self._call_huggingface(prompt)
         else:
             raise ValueError(f"Unsupported provider: {self.llm_config.provider}")
 
@@ -275,6 +294,27 @@ If the goal is complete, use action_name: "complete".
         self.history.tokens_used += response.usage.input_tokens + response.usage.output_tokens
 
         return response.content[0].text
+
+    def _call_huggingface(self, prompt: str) -> str:
+        """Call Hugging Face model"""
+        messages = [{"role": "user", "content": prompt}]
+
+        # Generate response
+        response = self._llm_client.generate(
+            messages=messages,
+            max_new_tokens=self.llm_config.max_tokens,
+            temperature=self.llm_config.temperature,
+            top_p=self.llm_config.top_p,
+        )
+
+        # Track usage (estimate tokens)
+        self.history.api_calls += 1
+        self.history.tokens_used += self._llm_client.count_tokens(prompt + response)
+
+        # Extract final message for models with channels
+        response = self._llm_client.extract_final_message(response)
+
+        return response
 
     def _parse_action_from_response(self, response: str) -> Dict[str, Any]:
         """Parse LLM response into action dict"""

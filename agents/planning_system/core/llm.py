@@ -18,8 +18,8 @@ class LLMConfig:
     """
 
     # Model selection
-    model_name: str  # e.g., "gpt-4o", "claude-3.5-sonnet", "o1-preview"
-    provider: str = "openai"  # "openai", "anthropic", "google", "openrouter"
+    model_name: str  # e.g., "gpt-4o", "claude-3.5-sonnet", "openai/gpt-oss-20b"
+    provider: str = "openai"  # "openai", "anthropic", "google", "openrouter", "huggingface"
 
     # Generation parameters
     temperature: float = 0.7  # Sampling temperature (0.0 = deterministic)
@@ -53,6 +53,7 @@ class LLMConfig:
             "anthropic": "ANTHROPIC_API_KEY",
             "google": "GOOGLE_API_KEY",
             "openrouter": "OPENROUTER_API_KEY",
+            "huggingface": "HF_TOKEN",  # Hugging Face token
         }
         env_var = key_map.get(self.provider, "OPENAI_API_KEY")
         return os.getenv(env_var)
@@ -117,4 +118,105 @@ def get_default_config() -> LLMConfig:
         provider="openai",
         temperature=0.7,
         max_tokens=16384,
+    )
+
+
+# Hugging Face / Open-Source Model Configurations
+
+def get_gpt_oss_20b_config() -> LLMConfig:
+    """
+    Configuration for GPT OSS 20B (open-source reasoning model).
+
+    Fits in 16GB RAM with mxfp4 quantization.
+    """
+    return LLMConfig(
+        model_name="openai/gpt-oss-20b",
+        provider="huggingface",
+        temperature=1.0,  # Reasoning models benefit from higher temperature
+        max_tokens=16384,
+        extra_params={
+            "device_map": "auto",
+            "torch_dtype": "auto",
+            "attn_implementation": None,  # Set to "kernels-community/vllm-flash-attn3" for Hopper GPUs
+            "use_kernels": False,  # Set to True for MegaBlocks MoE optimization
+        },
+    )
+
+
+def get_gpt_oss_120b_config() -> LLMConfig:
+    """
+    Configuration for GPT OSS 120B (large open-source reasoning model).
+
+    Fits on single H100 GPU with mxfp4 quantization.
+    """
+    return LLMConfig(
+        model_name="openai/gpt-oss-120b",
+        provider="huggingface",
+        temperature=1.0,
+        max_tokens=32768,
+        extra_params={
+            "device_map": "auto",
+            "torch_dtype": "auto",
+            "attn_implementation": "kernels-community/vllm-flash-attn3",  # Recommended for Hopper
+        },
+    )
+
+
+def get_llama_3_8b_config(load_in_4bit: bool = False) -> LLMConfig:
+    """
+    Configuration for Llama 3.1 8B Instruct (open-source).
+
+    Args:
+        load_in_4bit: Use 4-bit quantization to reduce memory
+    """
+    return LLMConfig(
+        model_name="meta-llama/Llama-3.1-8B-Instruct",
+        provider="huggingface",
+        temperature=0.7,
+        max_tokens=8192,
+        extra_params={
+            "device_map": "auto",
+            "torch_dtype": "auto",
+            "load_in_4bit": load_in_4bit,
+        },
+    )
+
+
+def get_mistral_7b_config(load_in_4bit: bool = False) -> LLMConfig:
+    """
+    Configuration for Mistral 7B Instruct (open-source).
+
+    Args:
+        load_in_4bit: Use 4-bit quantization
+    """
+    return LLMConfig(
+        model_name="mistralai/Mistral-7B-Instruct-v0.3",
+        provider="huggingface",
+        temperature=0.7,
+        max_tokens=8192,
+        extra_params={
+            "device_map": "auto",
+            "torch_dtype": "auto",
+            "load_in_4bit": load_in_4bit,
+        },
+    )
+
+
+def get_qwen_7b_config(load_in_4bit: bool = False) -> LLMConfig:
+    """
+    Configuration for Qwen 2.5 7B Instruct (open-source).
+
+    Args:
+        load_in_4bit: Use 4-bit quantization
+    """
+    return LLMConfig(
+        model_name="Qwen/Qwen2.5-7B-Instruct",
+        provider="huggingface",
+        temperature=0.7,
+        max_tokens=8192,
+        extra_params={
+            "device_map": "auto",
+            "torch_dtype": "auto",
+            "load_in_4bit": load_in_4bit,
+        },
     )
