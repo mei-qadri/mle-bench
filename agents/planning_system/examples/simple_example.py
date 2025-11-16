@@ -52,7 +52,17 @@ def main():
     print("="*60 + "\n")
     print(plan.visualize())
 
-    # Step 5: Add plugins to agents
+    # Step 5: Add plugins to agents (optional - requires dependencies)
+    print("\nNote: Plugin registration requires ML dependencies (pandas, scikit-learn)")
+    print("Skipping plugin registration in this example.")
+    print("Plugins can be registered when executing with full dependencies.\n")
+
+    # Initialize empty plugin list for all agents
+    for agent in plan.agents:
+        plan.plugins[agent.agent_id] = []
+
+    # Uncomment below to register plugins (requires: pip install pandas numpy scikit-learn)
+    """
     print("\nRegistering plugins with agents...")
 
     # Create plugin instances
@@ -76,34 +86,54 @@ def main():
 
         else:
             plan.plugins[agent.agent_id] = []
+    """
 
     # Step 6: (Optional) Execute the plan
-    # Uncomment to actually run the workflow
-    """
-    print("\nExecuting workflow...")
-    workspace_dir = Path("./workspace/spaceship-titanic")
-    data_dir = Path("/home/data")  # Adjust as needed
+    # Set to True to actually run the workflow (requires scikit-learn, pandas, etc.)
+    EXECUTE_WORKFLOW = False
 
-    engine = WorkflowExecutionEngine(plan, workspace_dir, data_dir)
-    result = engine.execute()
+    if EXECUTE_WORKFLOW:
+        print("\nExecuting workflow...")
+        print("Note: This requires ML dependencies (pandas, scikit-learn, etc.)")
 
-    print("\n" + "="*60)
-    print("Execution Result")
-    print("="*60)
-    print(f"Success: {result.success}")
-    print(f"Execution Time: {result.execution_time:.1f}s")
-    print(f"Errors: {len(result.errors)}")
-    """
+        # Check for required packages
+        try:
+            import pandas
+            import sklearn
+            import numpy
+        except ImportError as e:
+            print(f"\n⚠️  Missing dependency: {e}")
+            print("Install with: pip install pandas numpy scikit-learn")
+            print("Skipping execution...\n")
+        else:
+            workspace_dir = Path("./workspace/spaceship-titanic")
+            data_dir = Path("/home/data")  # Adjust as needed
+
+            engine = WorkflowExecutionEngine(plan, workspace_dir, data_dir)
+            result = engine.execute()
+
+            print("\n" + "="*60)
+            print("Execution Result")
+            print("="*60)
+            print(f"Success: {result.success}")
+            print(f"Execution Time: {result.execution_time:.1f}s")
+            print(f"Errors: {len(result.errors)}")
+    else:
+        print("\n" + "="*60)
+        print("Note: Execution Skipped")
+        print("="*60)
+        print("\nTo execute the workflow, set EXECUTE_WORKFLOW = True in this script.")
+        print("This requires: pip install pandas numpy scikit-learn\n")
 
     print("\n" + "="*60)
     print("Example Complete!")
     print("="*60 + "\n")
 
     print("Next steps:")
-    print("  1. Review the generated plan")
-    print("  2. Uncomment the execution code to run the workflow")
-    print("  3. Adjust plugins and agent roles as needed")
-    print("  4. Use the CLI for full integration with MLE-Bench")
+    print("  1. Review the generated plan above")
+    print("  2. Install ML dependencies: pip install pandas numpy scikit-learn")
+    print("  3. Set EXECUTE_WORKFLOW = True to run the workflow")
+    print("  4. Or use the CLI for full integration: python agents/planning_system/run.py")
 
 
 if __name__ == "__main__":
